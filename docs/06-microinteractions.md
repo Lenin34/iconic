@@ -1,56 +1,146 @@
 # 06 — Micro-interacciones
 
+> Implementadas con React + Framer Motion + Tailwind v4. Patrones inspirados en Landa.
+
 ## Filtros de categoría (pills)
 
-### Pill activo
+```tsx
+'use client';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 
-| Propiedad | Valor |
-|---|---|
-| Background | `rgba(236,72,153,0.12)` |
-| Border-color | `rgba(236,72,153,0.35)` |
-| Color | `#EC4899` |
+export function CategoryFilters({ categories, products }: Props) {
+  const [active, setActive] = useState<string | null>(null);
+  const filtered = active ? products.filter(p => p.category.slug === active) : products;
 
-### Comportamiento del grid al filtrar
+  return (
+    <>
+      <div className="flex gap-2 flex-wrap">
+        {categories.map(cat => {
+          const isActive = active === cat.slug;
+          return (
+            <button
+              key={cat.slug}
+              onClick={() => setActive(isActive ? null : cat.slug)}
+              className={`
+                px-4 py-2 rounded-full font-mono text-[10px] uppercase tracking-[2px] border transition-all duration-200
+                ${isActive
+                  ? 'bg-[rgba(236,72,153,0.12)] border-[rgba(236,72,153,0.35)] text-accent'
+                  : 'border-border-default text-text-secondary hover:border-border-hover'}
+              `}
+            >
+              {cat.name}
+            </button>
+          );
+        })}
+      </div>
 
-- **Cards no seleccionadas**: `opacity: 0.3`, `filter: blur(1px) scale(0.98)`, transición `300ms`.
-- **Cards seleccionadas**: entran con stagger de `60ms` (ver `05-animations.md`).
+      <AnimatePresence mode="popLayout">
+        <motion.div
+          key={active || 'all'}
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-8"
+        >
+          {filtered.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
+        </motion.div>
+      </AnimatePresence>
+    </>
+  );
+}
+```
 
-## Campo de búsqueda
+## Campo de búsqueda expandible
 
-### Estado por defecto
+```tsx
+'use client';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 
-- Visible pero con `width: 0`, `opacity: 0`.
+export function SearchToggle() {
+  const [open, setOpen] = useState(false);
 
-### Al hacer click en el ícono de búsqueda del navbar
-
-- `width`: `0` → `200px`
-- `opacity`: `0` → `1`
-- Duración: `300ms`, curva `--ease-out-expo`
-- El ícono de lupa hace `transform: rotate(90deg)`, convirtiéndose visualmente en una **X de cierre**.
+  return (
+    <div className="flex items-center gap-2">
+      <AnimatePresence>
+        {open && (
+          <motion.input
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 200, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.19, 1, 0.22, 1] }}
+            type="search"
+            placeholder="Buscar..."
+            className="bg-bg-elevated border border-border-default rounded-full px-4 py-2 text-sm text-white outline-none focus:border-border-active"
+          />
+        )}
+      </AnimatePresence>
+      <motion.button
+        onClick={() => setOpen(o => !o)}
+        animate={{ rotate: open ? 90 : 0 }}
+        transition={{ duration: 0.3 }}
+        className="w-9 h-9 grid place-items-center text-text-secondary hover:text-white"
+      >
+        {open ? '×' : '🔍'}
+      </motion.button>
+    </div>
+  );
+}
+```
 
 ## Botón de agregar al carrito
 
-### Al click
+```tsx
+'use client';
+import { motion, useAnimationControls } from 'framer-motion';
+import { easing } from '@/lib/motion';
 
-- Botón: `transform: scale(0.92)` en `80ms` y rebota a `scale(1)` en `200ms` con `--ease-spring`.
-- Aparece **toast de confirmación** (ver glassmorphism).
-- El **contador del carrito** en el navbar hace el mismo efecto de scale.
+export function AddToCartButton({ productId }: { productId: number }) {
+  const controls = useAnimationControls();
+  const counterControls = useAnimationControls();
 
-```css
-@keyframes cart-pop {
-  0%   { transform: scale(1); }
-  30%  { transform: scale(0.92); }
-  100% { transform: scale(1); }
+  const handleClick = async () => {
+    controls.start({
+      scale: [1, 0.92, 1],
+      transition: { duration: 0.28, ease: easing.spring, times: [0, 0.3, 1] },
+    });
+    counterControls.start({
+      scale: [1, 0.92, 1],
+      transition: { duration: 0.28, ease: easing.spring, times: [0, 0.3, 1] },
+    });
+    // POST /api/cart ...
+    showToast('Agregado al carrito');
+  };
+
+  return (
+    <motion.button
+      animate={controls}
+      onClick={handleClick}
+      className="w-8 h-8 rounded-full bg-accent grid place-items-center text-white hover:bg-accent-hover transition-colors"
+    >
+      +
+    </motion.button>
+  );
 }
-.btn-add.is-clicked { animation: cart-pop 280ms var(--ease-spring); }
 ```
 
-## Lazy loading de imágenes de producto
+## Lazy loading de imágenes — `next/image` + shimmer
 
-### Antes de cargar — Shimmer
+`next/image` ya hace lazy loading automáticamente. Para el shimmer mientras carga, usamos `placeholder="blur"` o un skeleton custom:
 
-- Gradiente de `#161616` a `#1E1E1E` que se mueve de izquierda a derecha.
-- `@keyframes`, `1.5s linear infinite`.
+```tsx
+import Image from 'next/image';
+
+<Image
+  src={product.images[0]}
+  alt={product.name}
+  width={400}
+  height={400}
+  className="object-contain transition-opacity duration-300"
+  placeholder="blur"
+  blurDataURL="data:image/svg+xml;base64,..." // shimmer SVG
+/>
+```
+
+Skeleton shimmer manual (cuando no usamos `placeholder="blur"`):
 
 ```css
 @keyframes shimmer {
@@ -64,47 +154,136 @@
 }
 ```
 
-### Al cargar
-
-- `opacity: 0` → `opacity: 1` en `300ms ease`.
-
 ## Toast de "agregado al carrito"
 
-| Propiedad | Valor |
-|---|---|
-| Posición | Arriba a la derecha |
-| Backdrop | `blur(16px)` |
-| Fondo | `rgba(22,22,22,0.90)` |
-| Borde izquierdo | `3px solid #EC4899` |
-| Entrada | `translateX(100%)` → `translateX(0)`, `300ms`, `--ease-out-expo` |
-| Auto-cierre | `3s` |
+```tsx
+'use client';
+import { motion, AnimatePresence } from 'framer-motion';
+import { create } from 'zustand'; // o React Context si prefieres
+
+const useToast = create<{ message: string | null; show: (m: string) => void }>((set) => ({
+  message: null,
+  show: (message) => {
+    set({ message });
+    setTimeout(() => set({ message: null }), 3000);
+  },
+}));
+
+export function Toast() {
+  const message = useToast(s => s.message);
+
+  return (
+    <AnimatePresence>
+      {message && (
+        <motion.div
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '100%' }}
+          transition={{ duration: 0.3, ease: [0.19, 1, 0.22, 1] }}
+          className="
+            fixed top-6 right-6 z-[2000] backdrop-blur-[16px]
+            bg-[rgba(22,22,22,0.90)] border-l-[3px] border-accent
+            px-5 py-4 rounded-lg text-white text-sm
+          "
+        >
+          {message}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+```
 
 ## Quick view modal
 
-- Click en card abre modal con detalle de producto.
-- Overlay: `rgba(0,0,0,0.7)`.
-- Card del modal: `backdrop-filter: blur(24px)`, fondo `rgba(22,22,22,0.95)`, borde `rgba(255,255,255,0.10)`.
+```tsx
+'use client';
+import { motion, AnimatePresence } from 'framer-motion';
+
+export function QuickViewModal({ product, onClose }) {
+  return (
+    <AnimatePresence>
+      {product && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[1000] bg-black/70"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 16 }}
+            transition={{ duration: 0.3, ease: [0.19, 1, 0.22, 1] }}
+            className="
+              fixed inset-0 z-[1001] m-auto max-w-3xl h-fit
+              backdrop-blur-[24px] bg-[rgba(22,22,22,0.95)]
+              border border-[rgba(255,255,255,0.10)] rounded-[14px] p-8
+            "
+          >
+            {/* contenido producto */}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+```
 
 ## Selector de talla
 
-- Botones cuadrados de `40x40px`.
-- Default: borde `rgba(255,255,255,0.08)`, texto `rgba(255,255,255,0.65)`.
-- Hover: borde `rgba(255,255,255,0.20)`.
-- Activo: borde `rgba(236,72,153,0.35)`, fondo `rgba(236,72,153,0.08)`, texto `#EC4899`.
-- Sin stock: `opacity: 0.3`, `cursor: not-allowed`, línea diagonal con pseudo-elemento.
+```tsx
+{sizes.map(({ value, in_stock }) => (
+  <button
+    key={value}
+    disabled={!in_stock}
+    onClick={() => setSize(value)}
+    className={`
+      w-10 h-10 border rounded font-mono text-xs transition-all
+      ${size === value
+        ? 'border-[rgba(236,72,153,0.35)] bg-[rgba(236,72,153,0.08)] text-accent'
+        : 'border-border-default text-text-secondary hover:border-border-hover'}
+      ${!in_stock ? 'opacity-30 cursor-not-allowed line-through' : ''}
+    `}
+  >
+    {value}
+  </button>
+))}
+```
 
 ## Stepper de cantidad
 
-- `[ - ] cantidad [ + ]` — botones circulares de `28px`.
-- Click en `+`/`-`: número hace `translateY(-4px)` → `translateY(0)` con fade, `200ms`.
+```tsx
+'use client';
+import { motion, AnimatePresence } from 'framer-motion';
+
+<div className="flex items-center gap-3">
+  <button onClick={() => setQty(q => Math.max(1, q - 1))} className="w-7 h-7 rounded-full border border-border-default">−</button>
+  <AnimatePresence mode="wait">
+    <motion.span
+      key={qty}
+      initial={{ y: -4, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 4, opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="font-mono text-sm w-6 text-center"
+    >
+      {qty}
+    </motion.span>
+  </AnimatePresence>
+  <button onClick={() => setQty(q => q + 1)} className="w-7 h-7 rounded-full border border-border-default">+</button>
+</div>
+```
 
 ## Estados de feedback
 
-| Estado | Color | Tipo |
+| Estado | Color token | Uso |
 |---|---|---|
-| Éxito | `#22C55E` | Check ícono + Space Mono label |
-| Error | `#EF4444` | Cross ícono + Space Mono label |
-| Advertencia | `#F59E0B` | Triangle ícono |
-| Info | `rgba(255,255,255,0.65)` | Solo texto |
+| Éxito | `text-success` | Confirmaciones |
+| Error | `text-error` | Validaciones, fallos de API |
+| Advertencia | `text-warning` | Stock bajo |
+| Info | `text-text-secondary` | Solo texto |
 
-**Nunca usar verde, rojo o amarillo en otros contextos** — están reservados para feedback de sistema.
+**Estos colores están reservados para feedback de sistema. No usarlos en otros contextos.**

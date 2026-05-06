@@ -1,251 +1,339 @@
-# 09 — SEO para Iconic
+# 09 — SEO con Next.js 16
 
 > Migración Instagram → Web. El SEO **no es opcional**, es la razón principal de la migración junto con el funnel propio.
+> Next.js 16 trae la **Metadata API** moderna que reemplaza al viejo `<Head>`.
 
 ## Contexto del negocio
 
-**Iconic** vende sneakers en Instagram. Al migrar a web, busca:
+**Iconic** vende sneakers en Instagram. Al migrar a web busca:
 
-1. Aparecer en búsquedas como `nike air max cdmx`, `sneakers originales mexico`, `tienda sneakers online`.
-2. Que cada producto tenga URL compartible (WhatsApp, Stories, links en bio).
-3. Que las cards de producto se vean premium al compartirse (OpenGraph + Twitter Cards).
-4. Indexación rápida y robusta en Google.
+1. Aparecer en búsquedas como `nike air max cdmx`, `sneakers originales mexico`.
+2. URLs compartibles con OpenGraph premium (WhatsApp, Stories, link en bio).
+3. Indexación rápida y robusta en Google.
 
-## Arquitectura SEO-friendly
+## Arquitectura SEO con Next.js 16
 
 ### URLs limpias y semánticas
 
-| Página | URL |
-|---|---|
-| Home | `/` |
-| Catálogo | `/sneakers` |
-| Categoría | `/sneakers/nike` o `/sneakers/categoria/running` |
-| Producto | `/sneakers/nike-air-max-90-black` (slug único) |
-| Búsqueda | `/buscar?q=air+max` |
-| Carrito | `/carrito` (noindex) |
-| Checkout | `/checkout` (noindex) |
-| Order | `/order/{id}` (noindex) |
+| Página | Ruta App Router | URL pública |
+|---|---|---|
+| Home | `app/page.tsx` | `/` |
+| Catálogo | `app/sneakers/page.tsx` | `/sneakers` |
+| Categoría | `app/sneakers/[category]/page.tsx` | `/sneakers/nike` |
+| Producto | `app/sneakers/p/[slug]/page.tsx` | `/sneakers/p/nike-air-max-90-black` |
+| Búsqueda | `app/buscar/page.tsx` | `/buscar?q=air+max` |
+| Carrito | `app/carrito/page.tsx` | `/carrito` (noindex) |
+| Checkout | `app/checkout/page.tsx` | `/checkout` (noindex) |
+| Order | `app/order/[id]/page.tsx` | `/order/{id}` (noindex) |
 
 **Reglas**:
-- Slugs en minúsculas, kebab-case, sin acentos ni caracteres especiales.
-- IDs internos no aparecen en la URL pública (excepto orders).
-- Canonical en cada página: `<link rel="canonical" href="https://iconic.com.mx/sneakers/nike-air-max-90-black">`.
+- Slugs en kebab-case, sin acentos.
+- Server Components por defecto → contenido en HTML inicial → crawler-friendly.
 
-### Render del lado del servidor (SSR) para contenido crítico
+### Estrategia de cacheo
 
-- **Home, catálogo, categoría y producto** se renderizan **completos en el primer paint**.
-- Las transiciones AJAX (Fetch) son **mejora progresiva**, no requisito.
-- Si el usuario llega a `/sneakers/nike-air-max-90-black` con JS deshabilitado o desde un crawler: el contenido completo está en el HTML.
+| Tipo de página | Estrategia | Implementación |
+|---|---|---|
+| Home, catálogo | ISR 60s | `fetch(url, { next: { revalidate: 60 }})` |
+| Producto | ISR 60s + `generateStaticParams` | Pre-render top 100 productos |
+| Carrito, checkout | SSR dinámico | `fetch(url, { cache: 'no-store' })` |
 
-## Meta tags por página
+## Metadata API — Static y Dinámica
 
-### Template base
+### Metadata estática (layout y páginas fijas)
 
-```html
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ title }} — Iconic</title>
-  <meta name="description" content="{{ description }}">
-  <link rel="canonical" href="{{ canonical }}">
+`app/layout.tsx`:
 
-  <!-- OpenGraph -->
-  <meta property="og:type" content="{{ ogType }}">
-  <meta property="og:title" content="{{ title }}">
-  <meta property="og:description" content="{{ description }}">
-  <meta property="og:image" content="{{ ogImage }}">
-  <meta property="og:url" content="{{ canonical }}">
-  <meta property="og:site_name" content="Iconic">
-  <meta property="og:locale" content="es_MX">
+```tsx
+import type { Metadata } from 'next';
 
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="{{ title }}">
-  <meta name="twitter:description" content="{{ description }}">
-  <meta name="twitter:image" content="{{ ogImage }}">
-
-  <!-- Theme -->
-  <meta name="theme-color" content="#0A0A0A">
-</head>
+export const metadata: Metadata = {
+  metadataBase: new URL('https://iconic.com.mx'),
+  title: {
+    default: 'Iconic — Sneakers originales en CDMX',
+    template: '%s — Iconic',
+  },
+  description: 'Sneakers originales con envío a todo México. Nike, Adidas, Jordan, New Balance y más.',
+  applicationName: 'Iconic',
+  themeColor: '#0A0A0A',
+  openGraph: {
+    type: 'website',
+    siteName: 'Iconic',
+    locale: 'es_MX',
+    url: 'https://iconic.com.mx',
+    images: [{ url: '/og/default.jpg', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    creator: '@iconic_mx',
+  },
+  robots: { index: true, follow: true },
+  alternates: { canonical: '/' },
+};
 ```
 
-### Página de producto — datos específicos
+### Metadata dinámica (página de producto)
 
-```html
-<title>Nike Air Max 90 Black — Iconic</title>
-<meta name="description" content="Nike Air Max 90 en negro. Sneakers originales con envío a todo México. Tallas 25-30 MX. $2,499 MXN.">
-<meta property="og:type" content="product">
-<meta property="product:price:amount" content="2499">
-<meta property="product:price:currency" content="MXN">
-<meta property="product:availability" content="in stock">
+`app/sneakers/p/[slug]/page.tsx`:
+
+```tsx
+import type { Metadata } from 'next';
+import { fetchProductBySlug } from '@/lib/api';
+
+type Props = { params: Promise<{ slug: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await fetchProductBySlug(slug);
+  if (!product) return { title: 'Producto no encontrado' };
+
+  const title = `${product.name} — ${product.brand}`;
+  const description = `${product.name} en ${product.brand}. $${product.price} MXN. Envío a todo México. Sneakers originales.`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/sneakers/p/${product.slug}` },
+    openGraph: {
+      type: 'website',
+      title,
+      description,
+      url: `/sneakers/p/${product.slug}`,
+      images: product.images.map(url => ({ url, width: 1200, height: 1200, alt: product.name })),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: product.images.slice(0, 1),
+    },
+  };
+}
+
+export async function generateStaticParams() {
+  // Pre-renderizar top productos en build time
+  const products = await fetchTopProducts(100);
+  return products.map(p => ({ slug: p.slug }));
+}
+
+export default async function ProductPage({ params }: Props) {
+  const { slug } = await params;
+  const product = await fetchProductBySlug(slug);
+  // ...
+}
+```
+
+### Páginas privadas — `noindex`
+
+```tsx
+// app/carrito/page.tsx
+export const metadata = {
+  title: 'Carrito',
+  robots: { index: false, follow: false },
+};
 ```
 
 ## Structured Data (JSON-LD)
 
-### Producto
+### Producto — server component
 
-```html
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org/",
-  "@type": "Product",
-  "name": "Nike Air Max 90 Black",
-  "image": [
-    "https://iconic.com.mx/img/products/nike-air-max-90-black-1.webp",
-    "https://iconic.com.mx/img/products/nike-air-max-90-black-2.webp"
+```tsx
+// app/sneakers/p/[slug]/page.tsx
+export default async function ProductPage({ params }: Props) {
+  const { slug } = await params;
+  const product = await fetchProductBySlug(slug);
+  if (!product) notFound();
+
+  const jsonLd = {
+    '@context': 'https://schema.org/',
+    '@type': 'Product',
+    name: product.name,
+    image: product.images,
+    description: product.description,
+    sku: product.sku,
+    brand: { '@type': 'Brand', name: product.brand },
+    offers: {
+      '@type': 'Offer',
+      url: `https://iconic.com.mx/sneakers/p/${product.slug}`,
+      priceCurrency: 'MXN',
+      price: product.price,
+      availability: product.in_stock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      itemCondition: 'https://schema.org/NewCondition',
+    },
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      {/* UI */}
+    </>
+  );
+}
+```
+
+### Organization — en `app/layout.tsx`
+
+```tsx
+const orgJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Store',
+  name: 'Iconic',
+  url: 'https://iconic.com.mx',
+  logo: 'https://iconic.com.mx/logo.png',
+  sameAs: [
+    'https://www.instagram.com/iconic.mx',
+    'https://www.facebook.com/iconic.mx',
   ],
-  "description": "Sneakers Nike Air Max 90 en negro, originales con caja.",
-  "sku": "NK-AM90-BLK",
-  "brand": { "@type": "Brand", "name": "Nike" },
-  "offers": {
-    "@type": "Offer",
-    "url": "https://iconic.com.mx/sneakers/nike-air-max-90-black",
-    "priceCurrency": "MXN",
-    "price": "2499",
-    "availability": "https://schema.org/InStock",
-    "itemCondition": "https://schema.org/NewCondition"
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'Ciudad de México',
+    addressCountry: 'MX',
   },
-  "aggregateRating": {
-    "@type": "AggregateRating",
-    "ratingValue": "4.8",
-    "reviewCount": "47"
-  }
-}
-</script>
+};
+
+<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
 ```
 
-### Organization (en home)
+### BreadcrumbList — componente reutilizable
 
-```html
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Store",
-  "name": "Iconic",
-  "url": "https://iconic.com.mx",
-  "logo": "https://iconic.com.mx/img/logo.png",
-  "sameAs": [
-    "https://www.instagram.com/iconic.mx",
-    "https://www.facebook.com/iconic.mx"
-  ],
-  "address": {
-    "@type": "PostalAddress",
-    "addressLocality": "Ciudad de México",
-    "addressCountry": "MX"
-  }
+```tsx
+export function Breadcrumbs({ items }: { items: { name: string; url: string }[] }) {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((it, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: it.name,
+      item: `https://iconic.com.mx${it.url}`,
+    })),
+  };
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <nav className="font-mono text-[10px] tracking-[2px] uppercase text-text-tertiary">
+        {items.map((it, i) => (
+          <span key={it.url}>
+            {i > 0 && ' / '}
+            <a href={it.url}>{it.name}</a>
+          </span>
+        ))}
+      </nav>
+    </>
+  );
 }
-</script>
-```
-
-### BreadcrumbList (en categorías y producto)
-
-```html
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://iconic.com.mx/" },
-    { "@type": "ListItem", "position": 2, "name": "Sneakers", "item": "https://iconic.com.mx/sneakers" },
-    { "@type": "ListItem", "position": 3, "name": "Nike", "item": "https://iconic.com.mx/sneakers/nike" }
-  ]
-}
-</script>
 ```
 
 ## HTML semántico
 
 - `<header>` para navbar.
 - `<main>` para contenido principal.
-- `<nav>` para menú principal y breadcrumbs.
+- `<nav>` para menú y breadcrumbs.
 - `<article>` para cada card de producto.
-- `<section>` para bloques temáticos del home.
-- `<footer>` para footer.
-- `<h1>` único por página (en producto, es el nombre del producto; en home, el slogan/promesa).
-- Jerarquía estricta: `h1` → `h2` → `h3`, sin saltos.
+- `<section>` para bloques temáticos.
+- `<h1>` único por página.
 
-## Performance — Core Web Vitals
+## Sitemap dinámico
 
-| Métrica | Objetivo | Cómo lograrlo |
-|---|---|---|
-| **LCP** | `< 2.5s` | Imagen hero con `fetchpriority="high"`, fuentes con `preload`, CSS crítico inline |
-| **CLS** | `< 0.1` | Reservar espacio de imágenes con `width`/`height`, evitar inyección tardía de banners |
-| **INP** | `< 200ms` | Throttle/debounce en scroll, no bloquear el main thread |
-| **FCP** | `< 1.8s` | HTML pequeño, CSS crítico inline (~14KB) |
+`app/sitemap.ts`:
 
-### Optimización de imágenes
+```ts
+import type { MetadataRoute } from 'next';
+import { fetchAllProducts, fetchAllCategories } from '@/lib/api';
 
-- Formato: **WebP** (con fallback JPG para iOS antiguos).
-- `srcset` responsivo:
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const products = await fetchAllProducts();
+  const categories = await fetchAllCategories();
 
-```html
-<img
-  src="/img/products/nike-am90-400.webp"
-  srcset="/img/products/nike-am90-400.webp 400w,
-          /img/products/nike-am90-800.webp 800w,
-          /img/products/nike-am90-1200.webp 1200w"
+  return [
+    { url: 'https://iconic.com.mx', lastModified: new Date(), priority: 1 },
+    { url: 'https://iconic.com.mx/sneakers', lastModified: new Date(), priority: 0.9 },
+    ...categories.map(c => ({
+      url: `https://iconic.com.mx/sneakers/${c.slug}`,
+      lastModified: new Date(c.updated_at),
+      priority: 0.8,
+    })),
+    ...products.map(p => ({
+      url: `https://iconic.com.mx/sneakers/p/${p.slug}`,
+      lastModified: new Date(p.updated_at),
+      priority: 0.7,
+    })),
+  ];
+}
+```
+
+## Robots
+
+`app/robots.ts`:
+
+```ts
+import type { MetadataRoute } from 'next';
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: [
+      { userAgent: '*', allow: '/', disallow: ['/carrito', '/checkout', '/order/', '/api/'] },
+    ],
+    sitemap: 'https://iconic.com.mx/sitemap.xml',
+  };
+}
+```
+
+## Imágenes optimizadas con `next/image`
+
+```tsx
+import Image from 'next/image';
+
+<Image
+  src={product.images[0]}
+  alt={`${product.brand} ${product.name}`}
+  width={800}
+  height={800}
+  priority={isLCP}                // true solo para imagen del hero / above-the-fold
+  fetchPriority={isLCP ? 'high' : 'auto'}
   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-  alt="Nike Air Max 90 negro"
-  loading="lazy"
-  width="400" height="400">
+  className="object-contain"
+/>
 ```
 
-- Imagen del **hero/LCP** sin `loading="lazy"`, con `fetchpriority="high"`.
+`next/image` automáticamente:
+- Genera WebP/AVIF.
+- Responsive con `srcset`.
+- Lazy loading (excepto `priority`).
+- Reserva el espacio (CLS = 0).
 
-## Sitemap y robots.txt
+## Core Web Vitals — objetivos
 
-### `/sitemap.xml`
-
-Generado dinámicamente con todas las URLs públicas:
-- Home
-- Catálogo
-- Cada categoría
-- Cada producto
-- Páginas estáticas (sobre, contacto, FAQ)
-
-### `/robots.txt`
-
-```
-User-agent: *
-Allow: /
-Disallow: /carrito
-Disallow: /checkout
-Disallow: /order/
-Disallow: /api/
-
-Sitemap: https://iconic.com.mx/sitemap.xml
-```
+| Métrica | Objetivo |
+|---|---|
+| LCP | `< 2.5s` |
+| CLS | `< 0.1` |
+| INP | `< 200ms` |
+| FCP | `< 1.8s` |
 
 ## Migración desde Instagram
 
-### Aprovechar el tráfico de IG
-
-1. **Link en bio** apunta a `iconic.com.mx` (no a un linktree).
-2. **Stories con stickers de link** a productos específicos.
-3. **DMs con link directo** al producto en lugar de fotos.
-
-### Aprovechar el contenido existente
-
-- **Importar el catálogo de IG** como base inicial de productos.
-- **Usar las mejores fotos de IG** (con permiso/credit si son de creators) en el detalle del producto.
-- **Reviews/testimonios de DMs** convertirlos en sección "Lo que dicen nuestros clientes" con `Review` schema.
+1. **Link en bio** apunta a `iconic.com.mx`.
+2. **Stories con link sticker** a productos específicos.
+3. **DMs** con link directo en lugar de fotos.
+4. **Importar catálogo de IG** como base inicial en Laravel.
+5. **Reviews/testimonios de DMs** → sección con `Review` schema.
 
 ## Checklist final
 
-- [ ] Cada página tiene `<title>` único y descriptivo.
-- [ ] Cada página tiene `<meta description>` única (150–160 caracteres).
-- [ ] Canonical en todas las páginas.
-- [ ] OpenGraph y Twitter Cards en todas las páginas.
+- [ ] Cada página tiene `metadata` (estática o vía `generateMetadata`).
+- [ ] Canonical correcto en cada página.
+- [ ] OpenGraph + Twitter Cards en todas.
 - [ ] JSON-LD `Product` en cada producto.
 - [ ] JSON-LD `Organization` en home.
 - [ ] `BreadcrumbList` en categorías y producto.
-- [ ] Sitemap.xml dinámico.
-- [ ] robots.txt configurado.
+- [ ] `app/sitemap.ts` y `app/robots.ts`.
 - [ ] HTTPS obligatorio.
 - [ ] HTML semántico con `h1` único.
-- [ ] Imágenes con `alt` descriptivo (no "img1.jpg").
-- [ ] Lazy loading correcto (excepto LCP).
-- [ ] WebP con fallback.
-- [ ] Core Web Vitals dentro de objetivo.
-- [ ] Google Search Console + Bing Webmaster registrados.
-- [ ] Google Analytics 4 con eventos de e-commerce (`view_item`, `add_to_cart`, `purchase`).
+- [ ] `next/image` con `priority` solo en LCP.
+- [ ] `generateStaticParams` para top productos.
+- [ ] Google Search Console + Bing Webmaster.
+- [ ] GA4 con eventos e-commerce (`view_item`, `add_to_cart`, `purchase`).

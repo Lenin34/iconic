@@ -1,13 +1,13 @@
 # Iconic — Documentación de Diseño y Frontend
 
-Documentación técnica y de diseño para el e-commerce **Iconic**, una tienda de sneakers que migra de Instagram a una experiencia web monolítica inspirada en GitHub/Landa: precisa, suave, con animaciones quirúrgicas y SEO de primer nivel.
+Documentación técnica y de diseño para el e-commerce **Iconic**, una tienda de sneakers que migra de Instagram a una experiencia web inspirada en `Github/landa`: precisa, suave, con animaciones quirúrgicas y SEO de primer nivel.
 
 ## Filosofía del proyecto
 
-- **Monolito frontend** con Bootstrap 5 personalizado + Vanilla CSS + JS moderno.
-- **Inspiración**: tecnología, suavidad y animaciones tipo GitHub/Landa.
-- **Identidad**: oscuro, preciso, con detalles que brillan en el momento justo.
-- **SEO-first**: HTML semántico, render del lado del servidor para contenido crítico, fragmentos AJAX solo para transiciones internas.
+- **Stack replicado de Landa**: Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS v4 + Framer Motion. Backend Laravel sirviendo API REST.
+- **Inspiración**: tecnología, suavidad y animaciones de `Github/landa`.
+- **Identidad**: oscuro, preciso, con detalles que brillan en el momento justo (paleta Obsidian Chrome — la opuesta a la beige/serif de Landa, pero misma filosofía de movimiento).
+- **SEO-first**: SSR/SSG con Next.js, Metadata API, JSON-LD por producto, OpenGraph dinámico.
 
 ## Estructura de la documentación
 
@@ -20,9 +20,10 @@ Documentación técnica y de diseño para el e-commerce **Iconic**, una tienda d
 | [`05-animations.md`](./05-animations.md) | Curvas de easing, hovers, scroll, transiciones de página |
 | [`06-microinteractions.md`](./06-microinteractions.md) | Filtros, búsqueda, carrito, lazy loading, toasts |
 | [`07-glassmorphism.md`](./07-glassmorphism.md) | Uso quirúrgico de glassmorphism (3 lugares específicos) |
-| [`08-tech-stack.md`](./08-tech-stack.md) | Stack técnico, integración Bootstrap, SweetAlert2, Fetch |
-| [`09-seo.md`](./09-seo.md) | Estrategia SEO para migración Instagram → Web |
-| [`10-design-tokens.md`](./10-design-tokens.md) | Variables CSS listas para `:root` |
+| [`08-tech-stack.md`](./08-tech-stack.md) | Stack: Next.js 16 + Tailwind v4 + Framer Motion + Laravel |
+| [`09-seo.md`](./09-seo.md) | SEO con Next.js Metadata API + JSON-LD |
+| [`10-design-tokens.md`](./10-design-tokens.md) | Tokens en Tailwind v4 (`@theme inline`) + CSS variables |
+| [`11-project-structure.md`](./11-project-structure.md) | Monorepo `frontend/` + `backend/` (estilo Landa) |
 
 ## Propuesta activa
 

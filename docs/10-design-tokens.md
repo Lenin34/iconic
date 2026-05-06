@@ -1,22 +1,25 @@
-# 10 — Design Tokens (CSS listos para `:root`)
+# 10 — Design Tokens (Tailwind v4 + CSS Variables)
 
-Copiar tal cual a `assets/css/tokens.css`. **Esta es la única fuente de verdad** del sistema.
+> Tailwind v4 usa `@theme inline` directamente en CSS, **no** un `tailwind.config.js` con valores literales. Los CSS variables siguen siendo la fuente de verdad.
+
+Copiar a `frontend/app/globals.css`:
 
 ```css
+@import "tailwindcss";
+
+/* ============================================
+ * CSS Variables — fuente única de verdad
+ * ============================================ */
 :root {
-  /* ============================================
-   * COLORES — Fondos (jerarquía de profundidad)
-   * ============================================ */
+  /* Fondos (jerarquía de profundidad) */
   --bg-base:       #0A0A0A;
   --bg-section:    #0F0F0F;
   --bg-elevated:   #161616;
   --bg-hover:      #1E1E1E;
   --bg-divider:    #2A2A2A;
-  --bg-image:      #1F1F1F;  /* fondo del área de imagen del producto */
+  --bg-image:      #1F1F1F;
 
-  /* ============================================
-   * COLORES — Acento (rosa)
-   * ============================================ */
+  /* Acento */
   --accent:         #EC4899;
   --accent-hover:   #DB2777;
   --accent-light:   #F9A8D4;
@@ -24,113 +27,97 @@ Copiar tal cual a `assets/css/tokens.css`. **Esta es la única fuente de verdad*
   --accent-glow:    rgba(236, 72, 153, 0.08);
   --accent-border:  rgba(236, 72, 153, 0.30);
 
-  /* ============================================
-   * COLORES — Texto
-   * ============================================ */
+  /* Texto */
   --text-primary:   #FFFFFF;
   --text-secondary: rgba(255, 255, 255, 0.65);
   --text-tertiary:  rgba(255, 255, 255, 0.35);
   --text-disabled:  rgba(255, 255, 255, 0.12);
 
-  /* ============================================
-   * COLORES — Bordes
-   * ============================================ */
+  /* Bordes */
   --border-default: rgba(255, 255, 255, 0.08);
   --border-hover:   rgba(255, 255, 255, 0.14);
   --border-active:  rgba(236, 72, 153, 0.30);
   --border-subtle:  rgba(255, 255, 255, 0.06);
 
-  /* ============================================
-   * COLORES — Feedback de sistema
-   * ============================================ */
+  /* Feedback */
   --feedback-success: #22C55E;
   --feedback-error:   #EF4444;
   --feedback-warning: #F59E0B;
 
-  /* ============================================
-   * TIPOGRAFÍA
-   * ============================================ */
-  --font-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
-  --font-mono:    'Space Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --font-receipt: 'Courier Prime', ui-monospace, monospace;
-
-  /* ============================================
-   * SPACING
-   * ============================================ */
-  --space-xs:  4px;
-  --space-sm:  8px;
-  --space-md:  12px;
-  --space-lg:  16px;
-  --space-xl:  24px;
-  --space-2xl: 32px;
-  --space-3xl: 4rem;     /* 64px */
-  --space-4xl: 6rem;     /* 96px */
-
-  /* ============================================
-   * RADII
-   * ============================================ */
-  --radius-sm:   8px;
-  --radius-md:   10px;   /* área de imagen */
-  --radius-lg:   14px;   /* cards */
-  --radius-xl:   20px;
-  --radius-pill: 100px;
-  --radius-full: 9999px;
-
-  /* ============================================
-   * EASING (curvas de animación)
-   * ============================================ */
+  /* Easing */
   --ease-out-expo:    cubic-bezier(0.19, 1, 0.22, 1);
   --ease-out-quart:   cubic-bezier(0.25, 1, 0.5, 1);
   --ease-in-out-soft: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-spring:      cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* ============================================
-   * DURATIONS
-   * ============================================ */
-  --duration-fast:   150ms;
-  --duration-base:   200ms;
-  --duration-medium: 300ms;
-  --duration-slow:   400ms;
-  --duration-slower: 500ms;
-
-  /* ============================================
-   * Z-INDEX
-   * ============================================ */
-  --z-base:    1;
-  --z-sticky:  100;
-  --z-overlay: 500;
-  --z-modal:   1000;
-  --z-toast:   2000;
-  --z-cursor:  9999;
-
-  /* ============================================
-   * LAYOUT
-   * ============================================ */
+  /* Layout */
   --container-max:    1280px;
   --container-pad:    clamp(1rem, 4vw, 3rem);
   --navbar-h-desktop: 64px;
   --navbar-h-mobile:  56px;
 
-  /* ============================================
-   * BACKDROP / GLASSMORPHISM
-   * ============================================ */
+  /* Backdrop */
   --backdrop-blur-nav:   blur(20px) saturate(180%);
   --backdrop-blur-modal: blur(24px);
   --backdrop-blur-toast: blur(16px);
-
-  /* ============================================
-   * BOOTSTRAP OVERRIDES (--bs-*)
-   * ============================================ */
-  --bs-primary:       var(--accent);
-  --bs-body-bg:       var(--bg-base);
-  --bs-body-color:    var(--text-secondary);
-  --bs-border-color:  var(--border-default);
-  --bs-border-radius: var(--radius-lg);
-  --bs-font-sans-serif: var(--font-display);
 }
 
 /* ============================================
- * Respeto a usuarios con motion reduction
+ * @theme inline — expone tokens a Tailwind v4
+ * ============================================ */
+@theme inline {
+  /* Colors → utilities como bg-bg-base, text-accent, border-border-default */
+  --color-bg-base:       var(--bg-base);
+  --color-bg-section:    var(--bg-section);
+  --color-bg-elevated:   var(--bg-elevated);
+  --color-bg-hover:      var(--bg-hover);
+  --color-bg-divider:    var(--bg-divider);
+  --color-bg-image:      var(--bg-image);
+
+  --color-accent:        var(--accent);
+  --color-accent-hover:  var(--accent-hover);
+  --color-accent-light:  var(--accent-light);
+
+  --color-text-primary:   var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary:  var(--text-tertiary);
+  --color-text-disabled:  var(--text-disabled);
+
+  --color-border-default: var(--border-default);
+  --color-border-hover:   var(--border-hover);
+  --color-border-active:  var(--border-active);
+  --color-border-subtle:  var(--border-subtle);
+
+  --color-success: var(--feedback-success);
+  --color-error:   var(--feedback-error);
+  --color-warning: var(--feedback-warning);
+
+  /* Fonts (variables las inyecta next/font en <html>) */
+  --font-display: var(--font-space-grotesk);
+  --font-mono:    var(--font-space-mono);
+  --font-receipt: var(--font-courier-prime);
+
+  /* Radius */
+  --radius-sm:   8px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-pill: 100px;
+}
+
+/* ============================================
+ * Base
+ * ============================================ */
+body {
+  background: var(--bg-base);
+  color: var(--text-secondary);
+  font-family: var(--font-display), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+ * Reduced motion
  * ============================================ */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -142,35 +129,58 @@ Copiar tal cual a `assets/css/tokens.css`. **Esta es la única fuente de verdad*
 }
 ```
 
-## Cómo usarlos
+## Uso en componentes
 
-```css
-/* En componentes */
-.product-card {
-  background: var(--bg-elevated);
-  border: 0.5px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg);
-  transition: transform var(--duration-medium) var(--ease-out-quart),
-              border-color var(--duration-medium) var(--ease-out-quart);
-}
-.product-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--border-hover);
-}
+### Tailwind utilities directas
 
-.price {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 16px;
-  color: var(--accent);
-}
+```tsx
+<article className="bg-bg-elevated border border-border-default rounded-[14px] p-4 transition hover:border-border-hover hover:-translate-y-1">
+  <p className="font-mono text-[9px] tracking-[2px] uppercase text-text-tertiary">NIKE</p>
+  <h3 className="font-display text-sm font-medium text-white/90">Air Max 90</h3>
+  <p className="font-display font-bold text-base text-accent">$2,499</p>
+</article>
+```
 
-.brand-label {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-}
+### Variables crudas cuando Tailwind no alcanza
+
+```tsx
+<div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)' }}>
+  ...
+</div>
+```
+
+### En Framer Motion
+
+```tsx
+<motion.div
+  initial={{ opacity: 0, y: 16 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{
+    duration: 0.4,
+    ease: [0.19, 1, 0.22, 1], // --ease-out-expo
+  }}
+/>
+```
+
+> Las curvas de easing en Framer Motion se pasan como array `[x1, y1, x2, y2]`, equivalente a `cubic-bezier()`.
+
+## Constantes JS para reutilizar (opcional)
+
+`frontend/lib/motion.ts`:
+
+```ts
+export const easing = {
+  outExpo:    [0.19, 1, 0.22, 1],
+  outQuart:   [0.25, 1, 0.5, 1],
+  inOutSoft:  [0.4, 0, 0.2, 1],
+  spring:     [0.34, 1.56, 0.64, 1],
+} as const;
+
+export const duration = {
+  fast:   0.15,
+  base:   0.2,
+  medium: 0.3,
+  slow:   0.4,
+  slower: 0.5,
+} as const;
 ```
