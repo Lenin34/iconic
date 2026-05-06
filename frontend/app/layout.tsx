@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Space_Mono, Courier_Prime } from "next/font/google";
 import "./globals.css";
+import LoadingScreen from "@/components/loading/LoadingScreen";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -63,6 +64,7 @@ export default function RootLayout({
       className={`${spaceGrotesk.variable} ${spaceMono.variable} ${courierPrime.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-bg-base text-text-secondary">
+        <LoadingScreen />
         {children}
       </body>
     </html>

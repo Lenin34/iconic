@@ -3,6 +3,7 @@
 import { motion, useAnimationControls } from 'framer-motion';
 import { easing } from '@/lib/motion';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface Product {
   id: number;
@@ -11,7 +12,7 @@ interface Product {
   brand: string;
   price: number;
   badge?: 'NEW' | 'HOT' | 'DROP';
-  image?: string;
+  image: string;
 }
 
 interface ProductCardProps {
@@ -52,14 +53,13 @@ export default function ProductCard({ product, index }: ProductCardProps) {
             </div>
           )}
           
-          {/* Placeholder de imagen */}
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="text-center space-y-2">
-              <div className="w-20 h-20 bg-accent/5 rounded-full flex items-center justify-center mx-auto group-hover:scale-[1.04] transition-transform duration-[350ms] ease-[cubic-bezier(0.19,1,0.22,1)]">
-                <span className="font-display font-bold text-2xl text-accent/30">{product.brand[0]}</span>
-              </div>
-            </div>
-          </div>
+          {/* Imagen real de Unsplash */}
+          <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-[350ms] ease-[cubic-bezier(0.19,1,0.22,1)]"
+          />
         </div>
 
         {/* Body */}
