@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: iconic_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: iconic
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: iconic
+      MYSQL_PASSWORD: iconic
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - iconic_network
+
+  # Frontend - Next.js
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: iconic_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+      - NEXT_PUBLIC_SITE_URL=http://localhost:3000
+    depends_on:
+      - backend
+    networks:
+      - iconic_network
+
+  # Backend - Laravel (PHP-FPM)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: iconic_backend
+    restart: unless-stopped
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=iconic
+      - DB_USERNAME=iconic
+      - DB_PASSWORD=iconic
+    depends_on:
+      - mysql
+    volumes:
+      - ./backend:/var/www/html
+    networks:
+      - iconic_network
+
+  # Nginx - Reverse proxy for Laravel
+  nginx:
+    image: nginx:alpine
+    container_name: iconic_nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./backend:/var/www/html
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - backend
+    networks:
+      - iconic_network
+
+volumes:
+  mysql_data:
+
+networks:
+  iconic_network:
+    driver: bridge
