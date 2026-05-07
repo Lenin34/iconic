@@ -11,6 +11,7 @@ interface Product {
   brand: string;
   price: number;
   badge?: 'NEW' | 'HOT' | 'DROP';
+  image: string;
 }
 
 interface ProductGridProps {
@@ -32,7 +33,7 @@ export default function ProductGrid({ products, title }: ProductGridProps) {
               transition={{ duration: 0.3, ease: [0.19, 1, 0.22, 1] }}
               className="font-mono text-[9px] tracking-[3px] uppercase text-text-tertiary mb-3"
             >
-              Colección
+              Curated drops
             </motion.p>
             <motion.h2
               initial={{ opacity: 0, y: 24 }}

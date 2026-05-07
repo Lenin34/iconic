@@ -4,21 +4,27 @@
  * CSS Variables — fuente única de verdad
  * ============================================ */
 :root {
-  /* Fondos (jerarquía de profundidad) */
-  --bg-base:       #0A0A0A;
-  --bg-section:    #0F0F0F;
-  --bg-elevated:   #161616;
-  --bg-hover:      #1E1E1E;
-  --bg-divider:    #2A2A2A;
-  --bg-image:      #1F1F1F;
+  /* Fondos (jerarquía de profundidad) - Y2K Pop Culture */
+  --bg-base:       #1A1A2E;
+  --bg-section:    #16213E;
+  --bg-elevated:   #0F3460;
+  --bg-hover:      #1A1A4E;
+  --bg-divider:    #2A2A5E;
+  --bg-image:      #1E1E4E;
 
-  /* Acento */
-  --accent:         #EC4899;
-  --accent-hover:   #DB2777;
-  --accent-light:   #F9A8D4;
-  --accent-soft:    rgba(236, 72, 153, 0.15);
-  --accent-glow:    rgba(236, 72, 153, 0.08);
-  --accent-border:  rgba(236, 72, 153, 0.30);
+  /* Acentos Y2K Pop Culture */
+  --accent:         #FF6B9D;
+  --accent-hover:   #FF4081;
+  --accent-light:   #FFB3D1;
+  --accent-soft:    rgba(255, 107, 157, 0.15);
+  --accent-glow:    rgba(255, 107, 157, 0.2);
+  --accent-border:  rgba(255, 107, 157, 0.40);
+
+  /* Acentos secundarios Y2K */
+  --accent-cyan:    #4ECDC4;
+  --accent-cyan-hover: #3DBDB5;
+  --accent-yellow:  #FFE66D;
+  --accent-yellow-hover: #FFD93D;
 
   /* Texto */
   --text-primary:   #FFFFFF;
@@ -71,6 +77,11 @@
   --color-accent-hover:  var(--accent-hover);
   --color-accent-light:  var(--accent-light);
 
+  --color-accent-cyan:        var(--accent-cyan);
+  --color-accent-cyan-hover:  var(--accent-cyan-hover);
+  --color-accent-yellow:      var(--accent-yellow);
+  --color-accent-yellow-hover: var(--accent-yellow-hover);
+
   --color-text-primary:   var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-tertiary:  var(--text-tertiary);
@@ -107,6 +118,28 @@ body {
   font-family: var(--font-display), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+ * Custom Scrollbar
+ * ============================================ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-divider);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-default);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-divider) transparent;
 }
 
 /* ============================================

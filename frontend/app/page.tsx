@@ -1,5 +1,6 @@
 import Navbar from "@/components/navbar/Navbar";
 import Hero from "@/components/hero/Hero";
+import NewCollection from "@/components/collection/NewCollection";
 import ProductGrid from "@/components/product/ProductGrid";
 import Footer from "@/components/layout/Footer";
 
@@ -21,7 +22,8 @@ export default function Home() {
       <Navbar />
       <main className="flex-1">
         <Hero />
-        <ProductGrid products={featuredProducts} title="Nuevos drops" />
+        <NewCollection />
+        <ProductGrid products={featuredProducts} title="Fresh arrivals" />
       </main>
       <Footer />
     </>
